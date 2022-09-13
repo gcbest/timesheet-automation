@@ -60,6 +60,7 @@ func createUser(username string, password string) *user {
 		password: password,
 	}
 
+	fmt.Println("Login credentials added")
 	return &newUser
 }
 
