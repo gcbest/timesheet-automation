@@ -88,7 +88,7 @@ func logInUser(page *rod.Page, user User) {
 }
 
 func main() {
-	// user, _ := promptCredentials()
+	user, _ := promptCredentials()
 
 	url := launcher.New().
 		UserDataDir("path").
@@ -97,7 +97,7 @@ func main() {
 
 	page := rod.New().ControlURL(url).MustConnect().MustPage("https://inrhythm.my.salesforce.com/")
 	// page := rod.New().MustConnect().MustPage("https://inrhythm.my.salesforce.com/")
-	// logInUser(page, user)
+	logInUser(page, user)
 	fmt.Println(page.MustElement(".slds-global-header__logo"))
 
 	// TODO: message if login successful or not
@@ -178,12 +178,17 @@ func main() {
 		checkbox.MustClick()
 	}
 
+	convertActualTimeBtn := page.MustSearch(".actualise-selected-btn")
+	convertActualTimeBtn.MustClick()
+
+	// submitAllBtn := page.MustSearch(".submit-all-btn")
+	// submitAllBtn.MustClick()
+
 	////////WORKING
 	// checkbox1 := page.MustSearch(".entryHeight > .time-entry-footer > .time-entry-actions > .actualise-time")
 	// checkbox1 := page.MustElements(".TimeEntryContainer")
 	// checkbox1.MustClick()
 	//////////////////////
-
 	// checkboxesCount := 5
 	// for i := 0; i < checkboxesCount; i++ {
 	// 	checkbox, err := checkboxes.Nth(i)
