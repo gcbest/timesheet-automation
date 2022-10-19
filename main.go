@@ -52,6 +52,7 @@ func promptCredentials() (User, error) {
 	}
 
 	newUser := createUser(username, password)
+	// TODO: remove
 	fmt.Println("user", newUser)
 	return *newUser, nil
 }
@@ -96,11 +97,10 @@ func main() {
 		MustLaunch()
 
 	page := rod.New().ControlURL(url).MustConnect().MustPage("https://inrhythm.my.salesforce.com/")
-	// page := rod.New().MustConnect().MustPage("https://inrhythm.my.salesforce.com/")
 	logInUser(page, user)
-	fmt.Println(page.MustElement(".slds-global-header__logo"))
 
 	// TODO: message if login successful or not
+	// fmt.Println(page.MustElement(".slds-global-header__logo"))
 	// page.Race().Element("input[name=\"emc\"]").MustHandle(func(e *rod.Element) {
 	// 	verificationCode := promptVerificationCode()
 
@@ -127,51 +127,14 @@ func main() {
 	verificationCodeSubmitBtn.Click()
 	// verificationCodeInput.Press("Enter")
 	***************************************************/
-	fmt.Println("hello: ", "world")
-
-	// timeExpenseTab := page.MustElementR("span", "/.+Time & Expense Entry/i")
 	timeExpenseTab := page.MustSearch("one-app-nav-bar-item-root:nth-child(4) > a > span")
-
-	fmt.Println("timeExpenseTab: ", timeExpenseTab)
-
-	// timeExpenseTab := page.MustElement("body > div.desktop.container.forceStyle.oneOne.navexDesktopLayoutContainer.lafAppLayoutHost.forceAccess.tablet > div.viewport > section > div.none.navexStandardManager > div.slds-no-print.oneAppNavContainer > one-appnav > div > one-app-nav-bar > nav > div > one-app-nav-bar-item-root:nth-child(4) > a > span")
 	timeExpenseTab.MustClick()
 
-	// page.WaitForTimeout(15000)
-	// page.WaitForLoadState("networkidle")
-	// iframe, err := page.Locator(".windowViewMode-normal > .oneAlohaPage > force-aloha-page > .iframe-parent > iframe")
-	// iframe := page.MustElement(".windowViewMode-normal > .oneAlohaPage > force-aloha-page > .iframe-parent > iframe")
-	// fmt.Println("iframe: ", iframe)
-	//////////////////
-
-	// count, err := iframe.Count()
-	// fmt.Println("iframe count: ", count)
-	// iframe.ContentFrame()
-	// iframeList, err := page.QuerySelectorAll("[name*='vfFrameId_']")
-	// if err != nil {
-	// 	fmt.Printf("locating iframe err: %v \n", err)
-	// }
-	// iframeZero := iframeList[1]
-
-	///////////
-
-	// iframeContent, err := iframe.ContentFrame()
-
-	// #TimesheetHeader > div > span.clickable.left > a > span.linkText
 	calendarBtn := page.MustSearch("#TimesheetHeader > div > span.clickable.left > a > span.linkText")
-	fmt.Println("calendarBtn: ", calendarBtn)
-
 	calendarBtn.MustClick()
 
-	// Could also use MustSearch
-	// page.MustSearch("button")
-
-	// iframe2 := page.MustElement(".windowViewMode-normal > .oneAlohaPage > force-aloha-page > .iframe-parent > iframe")
-	// checkboxes := iframe2.MustElement(".entryHeight > .time-entry-footer > .time-entry-actions > .actualise-time")
 	x := page.MustSearch("div#TimesheetBody")
 	y := x.MustElements(".actualise-time")
-	fmt.Println("x: ", x)
-	fmt.Println("y: ", y)
 
 	for i := 0; i < len(y); i++ {
 		checkbox := y[i]
@@ -184,20 +147,6 @@ func main() {
 	// submitAllBtn := page.MustSearch(".submit-all-btn")
 	// submitAllBtn.MustClick()
 
-	////////WORKING
-	// checkbox1 := page.MustSearch(".entryHeight > .time-entry-footer > .time-entry-actions > .actualise-time")
-	// checkbox1 := page.MustElements(".TimeEntryContainer")
-	// checkbox1.MustClick()
-	//////////////////////
-	// checkboxesCount := 5
-	// for i := 0; i < checkboxesCount; i++ {
-	// 	checkbox, err := checkboxes.Nth(i)
-	// 	if err != nil {
-	// 		log.Fatalf("could not get checkboxes: %v \n", err)
-	// 	}
-	// 	// fmt.Printf("%d. %s\n", i, checkbox)
-	// 	checkbox.MustClick()
-	// }
+	// TODO: determine the amount of time to sleep
 	time.Sleep(time.Hour)
-
 }
