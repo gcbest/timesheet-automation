@@ -10,6 +10,8 @@ import (
 
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/launcher"
+	"github.com/pterm/pterm"
+	"github.com/pterm/pterm/putils"
 	"golang.org/x/term"
 )
 
@@ -38,12 +40,12 @@ func promptCredentials() (User, error) {
 	reader := bufio.NewReader(os.Stdin)
 
 	// TODO: add tests here
-	username, err := getInput("Enter username: ", false, reader)
+	username, err := getInput("Enter Salesforce Username: ", false, reader)
 	if err != nil {
 		fmt.Println("Please enter valid username")
 		promptCredentials()
 	}
-	password, err := getInput("Enter password: ", true, reader)
+	password, err := getInput("Enter Salesforce Password: ", true, reader)
 
 	// TODO: only prompt for password again
 	if err != nil {
@@ -88,7 +90,16 @@ func logInUser(page *rod.Page, user User) {
 	page.MustElementR("input", "/Log In/i").MustClick()
 }
 
+func printWelcomeMessage() {
+	bigText, _ := pterm.DefaultBigText.WithLetters(putils.LettersFromStringWithRGB("InRhythm", pterm.NewRGB(241, 91, 33))).Srender()
+	pterm.DefaultCenter.Println(bigText)
+
+	pterm.DefaultHeader.WithFullWidth().WithBackgroundStyle(pterm.NewStyle(pterm.BgCyan)).WithTextStyle(pterm.NewStyle(pterm.Bold)).Println(" Salesforce Timesheet Automation")
+}
+
 func main() {
+	printWelcomeMessage()
+	fmt.Println("")
 	user, _ := promptCredentials()
 
 	url := launcher.New().
