@@ -36,22 +36,37 @@ func getInput(prompt string, isPassword bool, r *bufio.Reader) (string, error) {
 	}
 }
 
+func getPassword(r *bufio.Reader) string {
+	password, err := getInput("Enter Salesforce Password: ", true, r)
+
+	if err != nil {
+		printErrMessage("Please enter valid password")
+		getPassword(r)
+	}
+
+	return password
+}
+
+func getUsername(r *bufio.Reader) string {
+	username, err := getInput("Enter Salesforce Username: ", false, r)
+	if err != nil {
+		printErrMessage("Please enter valid username")
+		getUsername(r)
+	}
+
+	return username
+}
+
+func printErrMessage(message string) {
+	pterm.NewRGB(255, 0, 0).Println(message)
+}
+
 func promptCredentials() (User, error) {
 	reader := bufio.NewReader(os.Stdin)
 
 	// TODO: add tests here
-	username, err := getInput("Enter Salesforce Username: ", false, reader)
-	if err != nil {
-		fmt.Println("Please enter valid username")
-		promptCredentials()
-	}
-	password, err := getInput("Enter Salesforce Password: ", true, reader)
-
-	// TODO: only prompt for password again
-	if err != nil {
-		fmt.Println("Please enter valid password")
-		promptCredentials()
-	}
+	username := getUsername(reader)
+	password := getPassword(reader)
 
 	newUser := createUser(username, password)
 	// TODO: remove
@@ -65,7 +80,7 @@ func promptVerificationCode() string {
 	code, err := getInput("Enter one time code: ", false, reader)
 
 	if err != nil {
-		fmt.Println("Please enter a valid code")
+		printErrMessage("Please enter a valid code")
 		promptVerificationCode()
 	}
 
@@ -155,9 +170,11 @@ func main() {
 	convertActualTimeBtn := page.MustSearch(".actualise-selected-btn")
 	convertActualTimeBtn.MustClick()
 
-	// submitAllBtn := page.MustSearch(".submit-all-btn")
-	// submitAllBtn.MustClick()
+	submitAllBtn := page.MustSearch(".submit-all-btn")
+	submitAllBtn.MustClick()
 
 	// TODO: determine the amount of time to sleep
 	time.Sleep(time.Hour)
+
+	// TODO: maybe ask user if they want to hit the submit button themselves and then have them close the window
 }
