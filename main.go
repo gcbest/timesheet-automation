@@ -58,7 +58,8 @@ func getUsername(r *bufio.Reader) string {
 }
 
 func printErrMessage(message string) {
-	pterm.NewRGB(255, 0, 0).Println(message)
+	var ERROR_COLOR pterm.RGB = pterm.NewRGB(255, 0, 0)
+	ERROR_COLOR.Println(message)
 }
 
 func promptCredentials() (User, error) {
@@ -93,29 +94,68 @@ func createUser(username string, password string) *User {
 		password: password,
 	}
 
+	fmt.Println("")
 	fmt.Println("Login credentials added")
 	return &newUser
 }
 
 func logInUser(page *rod.Page, user User) {
-	page.MustElement("input[name=\"username\"").MustInput(user.username)
+	// Navigated to Choose a Username Page
+
+	page.Race().Element("ul#idlist span").MustHandle(func(e *rod.Element) {
+		fmt.Printf("choose username: %v", e)
+		displayedUsername, _ := e.Text()
+		if displayedUsername == user.username {
+			e.MustClick()
+			handleCredentialsPage(page, user)
+		} else {
+			// TODO: maybe go incognito this time
+			fmt.Println("Log in unsuccessful, please enter credentials again")
+			page.Browser().Close()
+			main()
+		}
+	}).Element("input[name=\"username\"]").MustHandle(func(e *rod.Element) {
+		handleCredentialsPage(page, user)
+	}).MustDo()
+}
+
+func handleCredentialsPage(page *rod.Page, user User) {
+	page.Race().Element("img.clearicon").MustHandle(func(e *rod.Element) {
+		e.MustClick()
+		submitUserCredentials(page, user)
+	}).Element("input[name=\"pw\"]").MustHandle(func(e *rod.Element) {
+		submitUserCredentials(page, user)
+	}).MustDo()
+}
+
+func submitUserCredentials(page *rod.Page, user User) {
+	page.MustElement("input[name=\"username\"]").MustInput(user.username)
 	page.MustElement("input[name=\"pw\"]").MustInput(user.password)
-	// rememberMeCheckBox := page.Locator("input#rememberUn")
-	// rememberMeCheckBox.Check()
-	page.MustElementR("input", "/Log In/i").MustClick()
+	rememberMeCheckBox := page.MustElement("input#rememberUn")
+	if !rememberMeCheckBox.MustProperty("checked").Bool() {
+		rememberMeCheckBox.MustClick()
+	}
+	page.MustElement("input#Login").MustClick()
 }
 
 func printWelcomeMessage() {
-	bigText, _ := pterm.DefaultBigText.WithLetters(putils.LettersFromStringWithRGB("InRhythm", pterm.NewRGB(241, 91, 33))).Srender()
+	var INRHYTHM_COLOR pterm.RGB = pterm.NewRGB(241, 91, 33)
+	bigText, _ := pterm.DefaultBigText.WithLetters(putils.LettersFromStringWithRGB("InRhythm", INRHYTHM_COLOR)).Srender()
 	pterm.DefaultCenter.Println(bigText)
-
 	pterm.DefaultHeader.WithFullWidth().WithBackgroundStyle(pterm.NewStyle(pterm.BgCyan)).WithTextStyle(pterm.NewStyle(pterm.Bold)).Println(" Salesforce Timesheet Automation")
 }
 
 func main() {
 	printWelcomeMessage()
 	fmt.Println("")
+	shouldAutoSubmit := checkIfAutoSubmit()
+	getCredentialsAndLogin(shouldAutoSubmit)
+}
+
+func getCredentialsAndLogin(shouldAutoSubmit bool) {
 	user, _ := promptCredentials()
+
+	spinnerInfo, _ := pterm.DefaultSpinner.Start("Launching browser...")
 
 	url := launcher.New().
 		UserDataDir("path").
@@ -123,58 +163,78 @@ func main() {
 		MustLaunch()
 
 	page := rod.New().ControlURL(url).MustConnect().MustPage("https://inrhythm.my.salesforce.com/")
+	spinnerInfo.Info()
 	logInUser(page, user)
+	handleLoginNavigation(page, user, shouldAutoSubmit)
+}
 
-	// TODO: message if login successful or not
-	// fmt.Println(page.MustElement(".slds-global-header__logo"))
-	// page.Race().Element("input[name=\"emc\"]").MustHandle(func(e *rod.Element) {
-	// 	verificationCode := promptVerificationCode()
+func handleLoginNavigation(page *rod.Page, user User, shouldAutoSubmit bool) {
+	// Navigated to Homepage
+	page.Race().Element(".help").MustHandle(func(e *rod.Element) {
+		handleSubmittingTime(page, shouldAutoSubmit)
 
-	// 	e.MustInput(verificationCode)
-	// 	page.MustElementR("input", "/Verify/i").MustClick()
+		// Navigated to Verification Code Page
+	}).ElementR("label", "/Verification Code/i").MustHandle(func(e *rod.Element) {
+		verificationCode := promptVerificationCode()
+		verificationCodeInput := page.MustElement("input[name=\"emc\"]")
+		verificationCodeInput.MustInput(verificationCode)
+		verificationCodeSubmitBtn := page.MustElement("input[title=\"Verify\"]")
+		verificationCodeSubmitBtn.MustClick()
 
-	// }).Element("body > div.desktop.container.forceStyle.oneOne.navexDesktopLayoutContainer.lafAppLayoutHost.forceAccess.tablet > div.viewport > section > div.none.navexStandardManager > div.slds-no-print.oneAppNavContainer > one-appnav > div > one-app-nav-bar > nav > div > one-app-nav-bar-item-root:nth-child(4) > a > span").MustHandle(func(e *rod.Element) {
-	// 	e.MustClick()
-	// }).Element("ERROR-CASE").MustHandle(func(e *rod.Element) {
-	// 	// print message to user for error case
-	// 	fmt.Println("Log in unsuccessful, please enter credentials again")
-	// 	page.Browser().Close()
-	// 	main()
-	// }).MustDo()
-	/********** Verification Code Submit ********** Conditional
-	verificationCode := promptVerificationCode()
+		handleSubmittingTime(page, shouldAutoSubmit)
 
-	verificationCodeInput, _ := page.Locator("input[name=\"emc\"]")
-	verificationCodeInput.Fill(verificationCode)
-	verificationCodeSubmitBtn, err := page.Locator("input:has-text(\"Verify\")")
-	if err != nil {
-		log.Fatalf("could not find code submit button: %v", err)
+		// Incorrect User Credentials
+	}).Element(".loginError").MustHandle(func(e *rod.Element) {
+		fmt.Println("Log in unsuccessful, please enter credentials again")
+		page.Browser().Close()
+		main()
+	}).MustDo()
+}
+
+func checkIfAutoSubmit() bool {
+	fmt.Println("Would you like to auto-submit the timesheet? (Best for regular work week i.e. no PTO or holidays)")
+	shouldAutoSubmit, _ := pterm.DefaultInteractiveConfirm.Show()
+	if !shouldAutoSubmit {
+		fmt.Println("")
+		fmt.Println("After logging in, you will have 10 minutes to update and manually submit your timesheet")
+		fmt.Println("")
 	}
-	verificationCodeSubmitBtn.Click()
-	// verificationCodeInput.Press("Enter")
-	***************************************************/
-	timeExpenseTab := page.MustSearch("one-app-nav-bar-item-root:nth-child(4) > a > span")
+	return shouldAutoSubmit
+}
+
+func handleSubmittingTime(page *rod.Page, shouldAutoSubmit bool) {
+	timeExpenseTabSelector := "one-app-nav-bar-item-root:nth-child(4) > a > span"
+	timeExpenseTab := page.MustSearch(timeExpenseTabSelector)
 	timeExpenseTab.MustClick()
 
-	calendarBtn := page.MustSearch("#TimesheetHeader > div > span.clickable.left > a > span.linkText")
+	calendarBtnSelector := "#TimesheetHeader > div > span.clickable.left > a > span.linkText"
+	calendarBtn := page.MustSearch(calendarBtnSelector)
 	calendarBtn.MustClick()
 
-	x := page.MustSearch("div#TimesheetBody")
-	y := x.MustElements(".actualise-time")
+	// Give them 10 mins to add custom times
+	if shouldAutoSubmit {
+		timesheetBodySelector := "div#TimesheetBody"
+		timesheetBody := page.MustSearch(timesheetBodySelector)
+		actualTimeCheckboxSelector := ".actualise-time"
+		actualTimeCheckboxes := timesheetBody.MustElements(actualTimeCheckboxSelector)
 
-	for i := 0; i < len(y); i++ {
-		checkbox := y[i]
-		checkbox.MustClick()
+		// Check all checkboxes
+		for i := 0; i < len(actualTimeCheckboxes); i++ {
+			checkbox := actualTimeCheckboxes[i]
+			checkbox.MustClick()
+		}
+
+		convertActualTimeBtnSelector := ".actualise-selected-btn"
+		convertActualTimeBtn := page.MustSearch(convertActualTimeBtnSelector)
+		convertActualTimeBtn.MustClick()
+		// Auto-submit
+		submitAllBtnSelector := ".submit-all-btn"
+		submitAllBtn := page.MustSearch(submitAllBtnSelector)
+		submitAllBtn.MustClick()
+		time.Sleep(time.Second * 10)
+	} else {
+		fmt.Println("You have 10 minutes to submit your timesheet before the browser window closes")
+		fmt.Println(" When you are finished submitting your timesheet you can close the browser window")
+		time.Sleep(time.Minute * 10)
 	}
-
-	convertActualTimeBtn := page.MustSearch(".actualise-selected-btn")
-	convertActualTimeBtn.MustClick()
-
-	submitAllBtn := page.MustSearch(".submit-all-btn")
-	submitAllBtn.MustClick()
-
-	// TODO: determine the amount of time to sleep
-	time.Sleep(time.Hour)
-
-	// TODO: maybe ask user if they want to hit the submit button themselves and then have them close the window
 }
