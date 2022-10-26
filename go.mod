@@ -1,4 +1,4 @@
-module example/hello
+module github.com/gcbest/timesheet-automation
 
 go 1.19
 

@@ -75,19 +75,6 @@ func promptCredentials() (User, error) {
 	return *newUser, nil
 }
 
-func promptVerificationCode() string {
-	fmt.Println("You should have received a one time verification code in your email")
-	reader := bufio.NewReader(os.Stdin)
-	code, err := getInput("Enter one time code: ", false, reader)
-
-	if err != nil {
-		printErrMessage("Please enter a valid code")
-		promptVerificationCode()
-	}
-
-	return code
-}
-
 func createUser(username string, password string) *User {
 	newUser := User{
 		username: username,
@@ -102,19 +89,17 @@ func createUser(username string, password string) *User {
 func logInUser(page *rod.Page, user User, shouldAutoSubmit bool) {
 	// Navigated to Choose a Username Page
 	page.Race().Element("ul#idlist span").MustHandle(func(e *rod.Element) {
-		fmt.Printf("choose username: %v", e)
 		displayedUsername, _ := e.Text()
 		if displayedUsername == user.username {
 			e.MustClick()
 			handleCredentialsPage(page, user, shouldAutoSubmit)
 		} else {
-			// TODO: maybe go incognito this time
-			fmt.Println("Log in unsuccessful, please enter credentials again")
+			printErrMessage("Log in unsuccessful, please enter credentials again")
 			page.Browser().Close()
 			main()
 		}
 		// Navigated to Login Page
-	}).Element("input[name=\"username\"]").MustHandle(func(e *rod.Element) {
+	}).Element("input#username").MustHandle(func(e *rod.Element) {
 		handleCredentialsPage(page, user, shouldAutoSubmit)
 		// Navigated to Homepage
 	}).Element("div.slds-no-print.oneAppNavContainer").MustHandle(func(e *rod.Element) {
@@ -123,19 +108,13 @@ func logInUser(page *rod.Page, user User, shouldAutoSubmit bool) {
 }
 
 func handleCredentialsPage(page *rod.Page, user User, shouldAutoSubmit bool) {
-	page.Race().Element("img.clearicon").MustHandle(func(e *rod.Element) {
-		e.MustClick()
-		submitUserCredentials(page, user)
-		handleLoginNavigation(page, user, shouldAutoSubmit)
-	}).Element("input[name=\"pw\"]").MustHandle(func(e *rod.Element) {
-		submitUserCredentials(page, user)
-		handleLoginNavigation(page, user, shouldAutoSubmit)
-	}).MustDo()
+	submitUserCredentials(page, user)
+	handleLoginNavigation(page, user, shouldAutoSubmit)
 }
 
 func submitUserCredentials(page *rod.Page, user User) {
-	page.MustElement("input[name=\"username\"]").MustInput(user.username)
-	page.MustElement("input[name=\"pw\"]").MustInput(user.password)
+	page.MustElement("input#username").MustSelectAllText().MustInput("").MustInput(user.username)
+	page.MustElement("input#password").MustSelectAllText().MustInput("").MustInput(user.password)
 	rememberMeCheckBox := page.MustElement("input#rememberUn")
 	if !rememberMeCheckBox.MustProperty("checked").Bool() {
 		rememberMeCheckBox.MustClick()
@@ -179,11 +158,8 @@ func handleLoginNavigation(page *rod.Page, user User, shouldAutoSubmit bool) {
 		handleSubmittingTime(page, shouldAutoSubmit)
 		// Navigated to Verification Code Page
 	}).ElementR("label", "/Verification Code/i").MustHandle(func(e *rod.Element) {
-		verificationCode := promptVerificationCode()
-		verificationCodeInput := page.MustElement("input[name=\"emc\"]")
-		verificationCodeInput.MustInput(verificationCode)
-		verificationCodeSubmitBtn := page.MustElement("input[title=\"Verify\"]")
-		verificationCodeSubmitBtn.MustClick()
+		fmt.Println("You should have received a one time verification code in your email")
+		fmt.Println("You can enter that code into the input in the browser")
 
 		handleSubmittingTime(page, shouldAutoSubmit)
 
@@ -238,7 +214,7 @@ func handleSubmittingTime(page *rod.Page, shouldAutoSubmit bool) {
 		time.Sleep(time.Second * 5)
 	} else {
 		fmt.Println("You have 10 minutes to submit your timesheet before the browser window closes")
-		fmt.Println(" When you are finished submitting your timesheet you can close the browser window")
+		fmt.Println("When you are finished submitting your timesheet you can close the browser window")
 		time.Sleep(time.Minute * 10)
 	}
 }
