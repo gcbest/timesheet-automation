@@ -99,32 +99,37 @@ func createUser(username string, password string) *User {
 	return &newUser
 }
 
-func logInUser(page *rod.Page, user User) {
+func logInUser(page *rod.Page, user User, shouldAutoSubmit bool) {
 	// Navigated to Choose a Username Page
-
 	page.Race().Element("ul#idlist span").MustHandle(func(e *rod.Element) {
 		fmt.Printf("choose username: %v", e)
 		displayedUsername, _ := e.Text()
 		if displayedUsername == user.username {
 			e.MustClick()
-			handleCredentialsPage(page, user)
+			handleCredentialsPage(page, user, shouldAutoSubmit)
 		} else {
 			// TODO: maybe go incognito this time
 			fmt.Println("Log in unsuccessful, please enter credentials again")
 			page.Browser().Close()
 			main()
 		}
+		// Navigated to Login Page
 	}).Element("input[name=\"username\"]").MustHandle(func(e *rod.Element) {
-		handleCredentialsPage(page, user)
+		handleCredentialsPage(page, user, shouldAutoSubmit)
+		// Navigated to Homepage
+	}).Element("div.slds-no-print.oneAppNavContainer").MustHandle(func(e *rod.Element) {
+		handleSubmittingTime(page, shouldAutoSubmit)
 	}).MustDo()
 }
 
-func handleCredentialsPage(page *rod.Page, user User) {
+func handleCredentialsPage(page *rod.Page, user User, shouldAutoSubmit bool) {
 	page.Race().Element("img.clearicon").MustHandle(func(e *rod.Element) {
 		e.MustClick()
 		submitUserCredentials(page, user)
+		handleLoginNavigation(page, user, shouldAutoSubmit)
 	}).Element("input[name=\"pw\"]").MustHandle(func(e *rod.Element) {
 		submitUserCredentials(page, user)
+		handleLoginNavigation(page, user, shouldAutoSubmit)
 	}).MustDo()
 }
 
@@ -163,16 +168,15 @@ func getCredentialsAndLogin(shouldAutoSubmit bool) {
 		MustLaunch()
 
 	page := rod.New().ControlURL(url).MustConnect().MustPage("https://inrhythm.my.salesforce.com/")
-	spinnerInfo.Info()
-	logInUser(page, user)
-	handleLoginNavigation(page, user, shouldAutoSubmit)
+	spinnerInfo.Success()
+	logInUser(page, user, shouldAutoSubmit)
+	// handleLoginNavigation(page, user, shouldAutoSubmit)
 }
 
 func handleLoginNavigation(page *rod.Page, user User, shouldAutoSubmit bool) {
 	// Navigated to Homepage
-	page.Race().Element(".help").MustHandle(func(e *rod.Element) {
+	page.Race().Element("div.slds-no-print.oneAppNavContainer").MustHandle(func(e *rod.Element) {
 		handleSubmittingTime(page, shouldAutoSubmit)
-
 		// Navigated to Verification Code Page
 	}).ElementR("label", "/Verification Code/i").MustHandle(func(e *rod.Element) {
 		verificationCode := promptVerificationCode()
@@ -203,7 +207,7 @@ func checkIfAutoSubmit() bool {
 }
 
 func handleSubmittingTime(page *rod.Page, shouldAutoSubmit bool) {
-	timeExpenseTabSelector := "one-app-nav-bar-item-root:nth-child(4) > a > span"
+	timeExpenseTabSelector := "body > div.desktop.container.forceStyle.oneOne.navexDesktopLayoutContainer.lafAppLayoutHost.forceAccess.tablet > div.viewport > section > div.none.navexStandardManager > div.slds-no-print.oneAppNavContainer > one-appnav > div > one-app-nav-bar > nav > div > one-app-nav-bar-item-root:nth-child(4) > a"
 	timeExpenseTab := page.MustSearch(timeExpenseTabSelector)
 	timeExpenseTab.MustClick()
 
@@ -231,7 +235,7 @@ func handleSubmittingTime(page *rod.Page, shouldAutoSubmit bool) {
 		submitAllBtnSelector := ".submit-all-btn"
 		submitAllBtn := page.MustSearch(submitAllBtnSelector)
 		submitAllBtn.MustClick()
-		time.Sleep(time.Second * 10)
+		time.Sleep(time.Second * 5)
 	} else {
 		fmt.Println("You have 10 minutes to submit your timesheet before the browser window closes")
 		fmt.Println(" When you are finished submitting your timesheet you can close the browser window")
