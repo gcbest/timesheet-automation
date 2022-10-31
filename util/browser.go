@@ -11,18 +11,27 @@ import (
 
 func logInUser(page *rod.Page, user User, shouldAutoSubmit bool) {
 	// Navigated to Choose a Username Page
-	page.Race().Element("ul#idlist span").MustHandle(func(e *rod.Element) {
-		displayedUsername, _ := e.Text()
+	page.Race().ElementR("h2#header", "/Choose a Username/i").MustHandle(func(e *rod.Element) {
+		savedUserElement := page.MustElement("ul#idlist span")
+		displayedUsername := savedUserElement.MustText()
+		fmt.Println("displayedUsername: ", displayedUsername)
 		if displayedUsername == user.username {
-			e.MustClick()
+			savedUserElement.MustClick()
+			page.MustElement("a#clear_link").MustClick()
 			handleCredentialsPage(page, user, shouldAutoSubmit)
 		} else {
 			printErrMessage("Log in unsuccessful, please enter credentials again")
 			page.Browser().Close()
 			GetCredentialsAndLogin(shouldAutoSubmit)
 		}
+
+		// Navigated to Prefilled Login Page
+	}).Element("div#idcard-container[style*=\"display: block;\"]").MustHandle(func(e *rod.Element) {
+		page.MustElement("a#clear_link").MustClick()
+		handleCredentialsPage(page, user, shouldAutoSubmit)
+
 		// Navigated to Login Page
-	}).Element("input#username").MustHandle(func(e *rod.Element) {
+	}).Element("input#username[style*=\"display: block;\"]").MustHandle(func(e *rod.Element) {
 		handleCredentialsPage(page, user, shouldAutoSubmit)
 		// Navigated to Homepage
 	}).Element("div.slds-no-print.oneAppNavContainer").MustHandle(func(e *rod.Element) {
@@ -36,7 +45,7 @@ func handleCredentialsPage(page *rod.Page, user User, shouldAutoSubmit bool) {
 }
 
 func submitUserCredentials(page *rod.Page, user User) {
-	page.MustElement("input#username").MustSelectAllText().MustInput("").MustInput(user.username)
+	page.MustElement("input#username[style*=\"display: block;\"]").MustSelectAllText().MustInput("").MustInput(user.username)
 	page.MustElement("input#password").MustSelectAllText().MustInput("").MustInput(user.password)
 	rememberMeCheckBox := page.MustElement("input#rememberUn")
 	if !rememberMeCheckBox.MustProperty("checked").Bool() {
@@ -47,7 +56,6 @@ func submitUserCredentials(page *rod.Page, user User) {
 
 func GetCredentialsAndLogin(shouldAutoSubmit bool) {
 	user, _ := PromptForCredentials()
-
 	spinnerInfo, _ := pterm.DefaultSpinner.Start("Launching browser...")
 
 	url := launcher.New().
@@ -111,7 +119,7 @@ func handleSubmittingTime(page *rod.Page, shouldAutoSubmit bool) {
 		time.Sleep(time.Second * 5)
 	} else {
 		fmt.Println("You have 10 minutes to submit your timesheet before the browser window closes")
-		fmt.Println("When you are finished submitting your timesheet you can press (ctrl + C) to exit the program")
+		fmt.Println("When you are finished submitting your timesheet you can press (ctrl + C) in the terminal to exit the program")
 		time.Sleep(time.Minute * 10)
 	}
 }
