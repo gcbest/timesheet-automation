@@ -21,7 +21,7 @@ func logInUser(page *rod.Page, user User, shouldAutoSubmit bool) {
 		} else {
 			printErrMessage("Log in unsuccessful, please enter credentials again")
 			page.Browser().Close()
-			GetCredentialsAndLogin(shouldAutoSubmit)
+			Start(shouldAutoSubmit)
 		}
 
 		// Navigated to Prefilled Login Page
@@ -54,8 +54,12 @@ func submitUserCredentials(page *rod.Page, user User) {
 	page.MustElement("input#Login").MustClick()
 }
 
-func GetCredentialsAndLogin(shouldAutoSubmit bool) {
+func CreateUser() User {
 	user, _ := PromptForCredentials()
+	return user
+}
+
+func launchBrowser() *rod.Page {
 	spinnerInfo, _ := pterm.DefaultSpinner.Start("Launching browser...")
 
 	url := launcher.New().
@@ -65,6 +69,13 @@ func GetCredentialsAndLogin(shouldAutoSubmit bool) {
 
 	page := rod.New().ControlURL(url).MustConnect().MustPage("https://inrhythm.my.salesforce.com/")
 	spinnerInfo.Success()
+
+	return page
+}
+
+func Start(shouldAutoSubmit bool) {
+	user := CreateUser()
+	page := launchBrowser()
 	logInUser(page, user, shouldAutoSubmit)
 }
 
@@ -72,6 +83,7 @@ func handleLoginNavigation(page *rod.Page, user User, shouldAutoSubmit bool) {
 	// Navigated to Homepage
 	page.Race().Element("div.slds-no-print.oneAppNavContainer").MustHandle(func(e *rod.Element) {
 		handleSubmittingTime(page, shouldAutoSubmit)
+
 		// Navigated to Verification Code Page
 	}).ElementR("label", "/Verification Code/i").MustHandle(func(e *rod.Element) {
 		fmt.Println("You should have received a one time verification code in your email")
@@ -83,7 +95,7 @@ func handleLoginNavigation(page *rod.Page, user User, shouldAutoSubmit bool) {
 	}).Element(".loginError").MustHandle(func(e *rod.Element) {
 		fmt.Println("Log in unsuccessful, please enter credentials again")
 		page.Browser().Close()
-		GetCredentialsAndLogin(shouldAutoSubmit)
+		Start(shouldAutoSubmit)
 	}).MustDo()
 }
 
@@ -96,7 +108,7 @@ func handleSubmittingTime(page *rod.Page, shouldAutoSubmit bool) {
 	calendarBtn := page.MustSearch(calendarBtnSelector)
 	calendarBtn.MustClick()
 
-	// Give them 10 mins to add custom times
+	// Give user 10 mins to add custom times
 	if shouldAutoSubmit {
 		timesheetBodySelector := "div#TimesheetBody"
 		timesheetBody := page.MustSearch(timesheetBodySelector)

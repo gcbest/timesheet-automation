@@ -7,5 +7,5 @@ import (
 func main() {
 	util.PrintWelcomeMessage()
 	shouldAutoSubmit := util.CheckIfAutoSubmit()
-	util.GetCredentialsAndLogin(shouldAutoSubmit)
+	util.Start(shouldAutoSubmit)
 }
