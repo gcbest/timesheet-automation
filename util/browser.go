@@ -14,7 +14,6 @@ func logInUser(page *rod.Page, user User, shouldAutoSubmit bool) {
 	page.Race().ElementR("h2#header", "/Choose a Username/i").MustHandle(func(e *rod.Element) {
 		savedUserElement := page.MustElement("ul#idlist span")
 		displayedUsername := savedUserElement.MustText()
-		fmt.Println("displayedUsername: ", displayedUsername)
 		if displayedUsername == user.username {
 			savedUserElement.MustClick()
 			page.MustElement("a#clear_link").MustClick()
@@ -33,6 +32,7 @@ func logInUser(page *rod.Page, user User, shouldAutoSubmit bool) {
 		// Navigated to Login Page
 	}).Element("input#username[style*=\"display: block;\"]").MustHandle(func(e *rod.Element) {
 		handleCredentialsPage(page, user, shouldAutoSubmit)
+
 		// Navigated to Homepage
 	}).Element("div.slds-no-print.oneAppNavContainer").MustHandle(func(e *rod.Element) {
 		handleSubmittingTime(page, shouldAutoSubmit)
